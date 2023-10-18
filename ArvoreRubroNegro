@@ -1,0 +1,213 @@
+import java.io.File;
+import java.io.IOException;
+import java.util.Scanner;
+
+enum Cor {
+    VERMELHO, PRETO
+}
+
+class No {
+    String valor;
+    No pai;
+    No esquerda;
+    No direita;
+    Cor cor;
+}
+
+public class ArvoreRubroNegraString {
+    private No raiz;
+    private No NULO;
+
+    // Pré-requisito: As subárvores à esquerda e à direita devem ser árvores rubro-negras
+    private No corrigirInsercao(No no) {
+        No pai = null;
+        No avo = null;
+
+        while (no != raiz && no.cor == Cor.VERMELHO && no.pai.cor == Cor.VERMELHO) {
+            pai = no.pai;
+            avo = pai.pai;
+
+            // Caso 1: O pai do nó é filho esquerdo do avô
+            if (pai == avo.esquerda) {
+                No tio = avo.direita;
+
+                // Caso 1.1: O tio também é vermelho - apenas recoloração
+                if (tio != null && tio.cor == Cor.VERMELHO) {
+                    avo.cor = Cor.VERMELHO;
+                    pai.cor = Cor.PRETO;
+                    tio.cor = Cor.PRETO;
+                    no = avo;
+                } else {
+                    // Caso 1.2: Nó é filho direito do pai - rotação à esquerda
+                    if (no == pai.direita) {
+                        rotacionarEsquerda(pai);
+                        no = pai;
+                        pai = no.pai;
+                    }
+
+                    // Caso 1.3: Nó é filho esquerdo do pai - rotação à direita
+                    rotacionarDireita(avo);
+                    trocarCores(pai, avo);
+                    no = pai;
+                }
+            } else { // Caso 2: O pai do nó é filho direito do avô (simétrico ao caso 1)
+                No tio = avo.esquerda;
+
+                if (tio != null && tio.cor == Cor.VERMELHO) {
+                    avo.cor = Cor.VERMELHO;
+                    pai.cor = Cor.PRETO;
+                    tio.cor = Cor.PRETO;
+                    no = avo;
+                } else {
+                    if (no == pai.esquerda) {
+                        rotacionarDireita(pai);
+                        no = pai;
+                        pai = no.pai;
+                    }
+
+                    rotacionarEsquerda(avo);
+                    trocarCores(pai, avo);
+                    no = pai;
+                }
+            }
+        }
+
+        raiz.cor = Cor.PRETO;
+        return no;
+    }
+
+    // Função auxiliar para inserção
+    private void inserirBST(String valor) {
+        No no = new No();
+        no.pai = null;
+        no.valor = valor;
+        no.esquerda = NULO;
+        no.direita = NULO;
+        no.cor = Cor.VERMELHO;
+
+        No y = null;
+        No x = this.raiz;
+
+        while (x != NULO) {
+            y = x;
+            if (valor.compareTo(x.valor) < 0) {
+                x = x.esquerda;
+            } else {
+                x = x.direita;
+            }
+        }
+
+        no.pai = y;
+        if (y == null) {
+            raiz = no;
+        } else if (valor.compareTo(y.valor) < 0) {
+            y.esquerda = no;
+        } else {
+            y.direita = no;
+        }
+
+        if (no.pai == null) {
+            no.cor = Cor.PRETO;
+            return;
+        }
+
+        if (no.pai.pai == null) {
+            return;
+        }
+
+        corrigirInsercao(no);
+    }
+
+    // Função para inserir uma string na árvore
+    public void inserir(String valor) {
+        inserirBST(valor);
+    }
+
+    // Função auxiliar para realizar a rotação à esquerda de um nó
+    private void rotacionarEsquerda(No x) {
+        No y = x.direita;
+        x.direita = y.esquerda;
+        if (y.esquerda != NULO) {
+            y.esquerda.pai = x;
+        }
+        y.pai = x.pai;
+        if (x.pai == null) {
+            this.raiz = y;
+        } else if (x == x.pai.esquerda) {
+            x.pai.esquerda = y;
+        } else {
+            x.pai.direita = y;
+        }
+        y.esquerda = x;
+        x.pai = y;
+    }
+
+    // Função auxiliar para realizar a rotação à direita de um nó
+    private void rotacionarDireita(No x) {
+        No y = x.esquerda;
+        x.esquerda = y.direita;
+        if (y.direita != NULO) {
+            y.direita.pai = x;
+        }
+        y.pai = x.pai;
+        if (x.pai == null) {
+            this.raiz = y;
+        } else if (x == x.pai.direita) {
+            x.pai.direita = y;
+        } else {
+            x.pai.esquerda = y;
+        }
+        y.direita = x;
+        x.pai = y;
+    }
+
+    // Função auxiliar para trocar as cores de dois nós
+    private void trocarCores(No x, No y) {
+        Cor temp = x.cor;
+        x.cor = y.cor;
+        y.cor = temp;
+    }
+
+    // Função de busca em ordem
+    public boolean buscar(String valor) {
+        return buscarAuxiliar(this.raiz, valor);
+    }
+
+    // Função auxiliar para a busca em ordem
+    private boolean buscarAuxiliar(No no, String valor) {
+        if (no == NULO) {
+            return false;
+        }
+        
+        if (valor.equals(no.valor)) {
+            return true;
+        } else if (valor.compareTo(no.valor) < 0) {
+            return buscarAuxiliar(no.esquerda, valor);
+        } else {
+            return buscarAuxiliar(no.direita, valor);
+        }
+    }
+
+    public static void main(String[] args) {
+        ArvoreRubroNegraString arvore = new ArvoreRubroNegraString();
+
+        // Ler palavras de um arquivo de texto
+        try {
+            File arquivo = new File("caminho/para/seu/arquivo.txt"); // Substitua pelo caminho do seu arquivo
+            Scanner scanner = new Scanner(arquivo);
+
+            while (scanner.hasNext()) {
+                String palavra = scanner.next();
+                arvore.inserir(palavra);
+            }
+
+            scanner.close();
+        } catch (IOException e) {
+            System.out.println("Ocorreu um erro ao ler o arquivo: " + e.getMessage());
+        }
+
+        // Buscar palavras na árvore
+        System.out.println("Buscar 'gato': " + arvore.buscar("gato"));
+        System.out.println("Buscar 'hamster': " + arvore.buscar("hamster"));
+    }
+}
